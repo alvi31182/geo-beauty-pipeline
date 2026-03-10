@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEO Beauty Pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F5EFE6;
+    --rose: #C9748A;
+    --gold: #C9A96E;
+    --dark: #1A1118;
+    --dark2: #2D1F2A;
+    --dark3: #221828;
+    --muted: #8A7A85;
+    --code-bg: #0E0A0D;
+    --green: #7EC8A4;
+    --cyan: #7EC8C8;
+    --yellow: #E8C97A;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--dark); color:var(--cream); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+
+  .header { text-align:center; padding:64px 40px 48px; position:relative; }
+  .header::before { content:''; position:absolute; top:0; left:50%; transform:translateX(-50%); width:1px; height:64px; background:linear-gradient(to bottom,transparent,var(--rose)); }
+  .label-top { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:5px; color:var(--rose); text-transform:uppercase; margin-bottom:20px; }
+  h1 { font-family:'Playfair Display',serif; font-size:clamp(28px,5vw,52px); font-weight:400; line-height:1.15; margin-bottom:14px; }
+  h1 em { font-style:italic; color:var(--rose); }
+  .subtitle { font-size:13px; color:var(--muted); font-family:'DM Mono',monospace; letter-spacing:1px; }
+
+  .section { max-width:860px; margin:0 auto; padding:0 24px 80px; }
+  .section-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:4px; color:var(--gold); text-transform:uppercase; margin-bottom:32px; display:flex; align-items:center; gap:12px; }
+  .section-label::after { content:''; flex:1; height:1px; background:linear-gradient(to right,var(--gold),transparent); }
+
+  .steps { display:flex; flex-direction:column; }
+  .step { display:grid; grid-template-columns:56px 1fr; gap:0 24px; cursor:pointer; }
+  .step-line { display:flex; flex-direction:column; align-items:center; }
+  .step-dot { width:40px; height:40px; border-radius:50%; border:1.5px solid var(--rose); display:flex; align-items:center; justify-content:center; font-family:'DM Mono',monospace; font-size:13px; color:var(--rose); background:var(--dark); position:relative; z-index:2; transition:all .3s; flex-shrink:0; }
+  .step:hover .step-dot, .step.active .step-dot { background:var(--rose); color:var(--cream); box-shadow:0 0 20px #C9748A60; }
+  .step-connector { width:1px; flex:1; min-height:24px; background:linear-gradient(to bottom,#C9748A40,#C9748A20); }
+  .step:last-child .step-connector { display:none; }
+  .step-body { padding-bottom:32px; }
+  .step-header { display:flex; align-items:baseline; gap:12px; margin-bottom:8px; padding-top:8px; }
+  .step-name { font-family:'DM Mono',monospace; font-size:13px; color:var(--rose); font-weight:500; }
+  .step-model { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:1px; }
+  .step-title { font-family:'Playfair Display',serif; font-size:20px; color:var(--cream); margin-bottom:10px; font-weight:400; }
+  .step-desc { font-size:14px; color:#B0A0AA; line-height:1.7; margin-bottom:14px; }
+  .step-tags { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .tag { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:1px; padding:4px 10px; border-radius:2px; border:1px solid; }
+  .tag-green { color:var(--green); border-color:#7EC8A450; background:#7EC8A408; }
+  .tag-cyan  { color:var(--cyan);  border-color:#7EC8C850; background:#7EC8C808; }
+  .tag-gold  { color:var(--gold);  border-color:#C9A96E50; background:#C9A96E08; }
+  .tag-rose  { color:var(--rose);  border-color:#C9748A50; background:#C9748A08; }
+
+  .detail-panel { display:none; background:var(--dark2); border:1px solid #C9748A25; border-radius:4px; padding:20px 24px; margin-top:4px; animation:fadeIn .25s ease; }
+  .detail-panel.open { display:block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+  .detail-panel h4 { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:3px; color:var(--gold); text-transform:uppercase; margin-bottom:12px; }
+  .detail-panel ul { list-style:none; display:flex; flex-direction:column; gap:6px; }
+  .detail-panel ul li { font-size:13px; color:#C0B0BA; padding-left:16px; position:relative; line-height:1.5; }
+  .detail-panel ul li::before { content:'→'; position:absolute; left:0; color:var(--rose); font-family:'DM Mono',monospace; }
+
+  .flow-box { background:var(--dark3); border-left:2px solid #C9748A50; padding:12px 16px; border-radius:0 4px 4px 0; margin-bottom:8px; }
+  .flow-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:3px; color:var(--muted); text-transform:uppercase; margin-bottom:6px; }
+  .flow-items { display:flex; flex-wrap:wrap; gap:6px; }
+  .flow-item { font-family:'DM Mono',monospace; font-size:11px; color:var(--cream); background:var(--dark); padding:3px 8px; border-radius:2px; border:1px solid #3A2A35; }
+  .divider { height:1px; background:linear-gradient(to right,transparent,#C9748A30,transparent); margin:20px 0; }
+
+  .result-card { background:linear-gradient(135deg,var(--dark2),var(--dark3)); border:1px solid #C9748A30; border-radius:6px; padding:28px; position:relative; overflow:hidden; }
+  .result-card::after { content:''; position:absolute; top:0; right:0; width:120px; height:120px; background:radial-gradient(circle,#C9748A08,transparent 70%); pointer-events:none; }
+  .result-card h3 { font-family:'Playfair Display',serif; font-size:18px; font-weight:400; margin-bottom:6px; }
+  .result-card .brand { font-family:'DM Mono',monospace; font-size:11px; color:var(--rose); letter-spacing:2px; margin-bottom:14px; }
+  .result-card p { font-size:13px; color:#B8A8B2; line-height:1.8; }
+  .result-fields { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px; }
+  .result-field { background:var(--dark); padding:10px 14px; border-radius:3px; border:1px solid #2A1A22; }
+  .rf-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:4px; }
+  .rf-value { font-size:12px; color:var(--cream); }
+
+  .php-section { max-width:860px; margin:0 auto; padding:0 24px 80px; }
+  .tabs { display:flex; gap:2px; border-bottom:1px solid #C9748A20; }
+  .tab { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:1px; padding:10px 18px; cursor:pointer; color:var(--muted); border-bottom:2px solid transparent; transition:all .2s; margin-bottom:-1px; }
+  .tab:hover { color:var(--cream); }
+  .tab.active { color:var(--rose); border-bottom-color:var(--rose); }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  pre { background:var(--code-bg); border:1px solid #2A1A22; border-top:none; border-radius:0 0 4px 4px; padding:28px; overflow-x:auto; font-family:'DM Mono',monospace; font-size:12.5px; line-height:1.8; }
+  .kw  { color:#C792EA; }
+  .cls { color:var(--cyan); }
+  .fn  { color:var(--yellow); }
+  .str { color:var(--green); }
+  .cmt { color:#5A4A52; font-style:italic; }
+  .var { color:#F07178; }
+  .num { color:var(--gold); }
+  .arr { color:var(--rose); }
+
+  .prompt-block { background:var(--dark2); border:1px solid #C9A96E30; border-radius:4px; padding:24px 28px; margin-bottom:16px; position:relative; }
+  .prompt-block::before { content:'SYSTEM PROMPT'; position:absolute; top:-9px; left:16px; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:3px; color:var(--gold); background:var(--dark2); padding:0 8px; }
+  .prompt-block p { font-family:'DM Mono',monospace; font-size:12px; color:#C0B0A8; line-height:1.8; }
+  .block-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:2px; display:block; margin:14px 0 4px; }
+  .bl-role  { color:var(--cyan); }
+  .bl-const { color:#E06C75; }
+  .bl-behav { color:var(--green); }
+  .bl-field { color:var(--gold); }
+  .bl-fmt   { color:var(--rose); }
+
+
+  .footer { text-align:center; padding:40px 24px 60px; font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); letter-spacing:1px; border-top:1px solid #2A1A22; }
+  .footer span { color:var(--rose); }
+
+  @media(max-width:600px){ .result-fields{grid-template-columns:1fr} pre{font-size:11px;padding:16px} .tabs{flex-wrap:wrap} }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="label-top">GEO Pipeline · Beauty E-Commerce · PHP Implementation</div>
+  <h1>From Photo to <em>AI-Ranked</em><br>Product Description</h1>
+  <p class="subtitle">3-model pipeline · prompt engineering · PHP 8.2 / Symfony</p>
+</div>
+
+<div class="section">
+  <div class="section-label">Pipeline Architecture</div>
+  <div class="steps">
+
+    <!-- INPUT -->
+    <div class="step" onclick="toggleStep(this,'p0')">
+      <div class="step-line"><div class="step-dot">📦</div><div class="step-connector"></div></div>
+      <div class="step-body">
+        <div class="step-header"><span class="step-name">INPUT</span><span class="step-model">seller uploads</span></div>
+        <div class="step-title">3 Product Photos</div>
+        <div class="step-desc">Seller uploads front label, ingredients panel, and full packaging shot of the anti-aging face cream.</div>
+        <div class="step-tags"><span class="tag tag-gold">front label</span><span class="tag tag-gold">ingredients panel</span><span class="tag tag-gold">full packaging</span></div>
+        <div class="detail-panel" id="p0">
+          <h4>What we expect to extract</h4>
+          <ul>
+            <li>Brand name from logo (e.g. "Clarins", "La Mer", "Vichy")</li>
+            <li>Product line name and EAN / barcode</li>
+            <li>Volume in ml, SPF factor if printed</li>
+            <li>Key active ingredients visible on label</li>
+            <li>Skin type indication ("for dry skin", "sensitive", "oily")</li>
+            <li>Country of origin only if "Made in France / Korea" is printed</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODEL 1: VISION -->
+    <div class="step" onclick="toggleStep(this,'p1')">
+      <div class="step-line"><div class="step-dot">01</div><div class="step-connector"></div></div>
+      <div class="step-body">
+        <div class="step-header"><span class="step-name">BeautyVisionService</span><span class="step-model">Qwen2.5-VL:7b · temperature 0.1</span></div>
+        <div class="step-title">Visual Data Extraction</div>
+        <div class="step-desc">Vision model reads all visible text from photos. Outputs structured JSON. Never invents what it cannot see — uncertain fields return null.</div>
+        <div class="step-tags"><span class="tag tag-cyan">vision model</span><span class="tag tag-green">JSON output</span><span class="tag tag-rose">no hallucination</span></div>
+        <div class="detail-panel" id="p1">
+          <div class="flow-box">
+            <div class="flow-label">Input</div>
+            <div class="flow-items"><span class="flow-item">image_1.jpg</span><span class="flow-item">image_2.jpg</span><span class="flow-item">image_3.jpg</span></div>
+          </div>
+          <div class="flow-box">
+            <div class="flow-label">Output fields</div>
+            <div class="flow-items"><span class="flow-item">brandName</span><span class="flow-item">productLine</span><span class="flow-item">volumeMl</span><span class="flow-item">spfFactor</span><span class="flow-item">keyIngredients[]</span><span class="flow-item">skinType</span><span class="flow-item">countryOfOrigin</span><span class="flow-item">ean</span></div>
+          </div>
+          <div class="divider"></div>
+          <h4>Prompt Engineering Techniques</h4>
+          <ul>
+            <li><strong>Constraints BEFORE permissions</strong> — forbidden rules listed first in prompt</li>
+            <li><strong>Uncertainty anchoring</strong> — "if not visible → return null"</li>
+            <li><strong>5-block structure</strong> — ROLE / CONSTRAINTS / BEHAVIOR / FIELDS / FORMAT</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODEL 2: ENRICHMENT -->
+    <div class="step" onclick="toggleStep(this,'p2')">
+      <div class="step-line"><div class="step-dot">02</div><div class="step-connector"></div></div>
+      <div class="step-body">
+        <div class="step-header"><span class="step-name">BeautyEnrichmentService</span><span class="step-model">text LLM · temperature 0.5</span></div>
+        <div class="step-title">GEO Description Generation</div>
+        <div class="step-desc">Generates AI-search-optimized description using extracted data. Applies E-GEO Competitive + FAQ patterns for maximum ranking performance.</div>
+        <div class="step-tags"><span class="tag tag-green">GEO optimized</span><span class="tag tag-cyan">factual only</span><span class="tag tag-gold">competitive +1.61</span></div>
+        <div class="detail-panel" id="p2">
+          <div class="flow-box">
+            <div class="flow-label">Generates only empty fields</div>
+            <div class="flow-items"><span class="flow-item">description</span><span class="flow-item">texture</span><span class="flow-item">conditionGrade</span></div>
+          </div>
+          <div class="flow-box">
+            <div class="flow-label">Never generates — hallucination risk</div>
+            <div class="flow-items"><span class="flow-item">certifications ← catalog</span><span class="flow-item">compatibleSkinTypes ← catalog</span><span class="flow-item">countryOfOrigin ← vision only</span></div>
+          </div>
+          <div class="divider"></div>
+          <h4>GEO Description Structure (E-GEO research)</h4>
+          <ul>
+            <li>WHAT + FOR WHOM → active ingredients → texture → SPF → skin benefit → EAN</li>
+            <li>All numeric values included (ml, %, SPF number, weeks of testing)</li>
+            <li>User intent alignment — answers "which cream for dry skin over 40?"</li>
+            <li>Competitive differentiation — unique ingredient combination highlighted</li>
+            <li>5–10 sentences. Concrete facts. Zero marketing adjectives.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODEL 3: CHAT -->
+    <div class="step" onclick="toggleStep(this,'p3')">
+      <div class="step-line"><div class="step-dot">03</div><div class="step-connector"></div></div>
+      <div class="step-body">
+        <div class="step-header"><span class="step-name">BeautyChatService</span><span class="step-model">streaming text LLM · SSE</span></div>
+        <div class="step-title">Interactive Seller Refinement</div>
+        <div class="step-desc">Seller chats with AI to refine any field, add usage instructions, or correct extracted data. Responses stream token by token via Server-Sent Events.</div>
+        <div class="step-tags"><span class="tag tag-rose">SSE streaming</span><span class="tag tag-cyan">context-aware</span><span class="tag tag-green">[field:x] format</span></div>
+        <div class="detail-panel" id="p3">
+          <h4>Example Seller Interactions</h4>
+          <ul>
+            <li>"Add usage: apply morning and evening to clean, dry face"</li>
+            <li>"SPF is 30 not 50, please correct the description"</li>
+            <li>"Add that it is dermatologist tested for sensitive skin"</li>
+            <li>"Translate the description to French for the EU listing"</li>
+          </ul>
+          <div class="divider"></div>
+          <h4>Prompt Engineering in Chat</h4>
+          <ul>
+            <li><strong>Disambiguation rule</strong> — one clarifying question when seller request is ambiguous</li>
+            <li><strong>Critical first tokens</strong> — output starts with [field:name] tag immediately</li>
+            <li><strong>Think in English, output in target language</strong> — improves reasoning quality on local models</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTPUT -->
+    <div class="step" onclick="toggleStep(this,'p4')">
+      <div class="step-line"><div class="step-dot">✓</div><div class="step-connector" style="display:none"></div></div>
+      <div class="step-body">
+        <div class="step-header"><span class="step-name">OUTPUT</span><span class="step-model">GEO-optimized product card</span></div>
+        <div class="step-title">Ready for AI Search Engines</div>
+        <div class="step-desc">Final card ranks higher when buyers ask ChatGPT or Perplexity "best anti-aging cream for sensitive skin over 40".</div>
+        <div class="step-tags"><span class="tag tag-green">ChatGPT ready</span><span class="tag tag-cyan">Perplexity ready</span><span class="tag tag-gold">Google SGE ready</span></div>
+        <div class="detail-panel" id="p4">
+          <div class="result-card">
+            <div class="brand">CLARINS · MULTI-ACTIVE</div>
+            <h3>Night Cream — Combination &amp; Sensitive Skin</h3>
+            <p>Multi-Active Night Cream by Clarins — regenerating overnight treatment for combination and sensitive skin types. Volume: 50 ml. Active complex: Teasel extract (cellular regeneration), organic Mallow (hydration barrier), Myrothamnus (antioxidant protection). Texture: light non-greasy emulsion, absorbs within 60 seconds. Clinically tested: skin density +18% after 4 weeks of use. Usage: apply 2–3 drops nightly to cleansed face and neck. EAN: 3380810045673.</p>
+            <div class="result-fields">
+              <div class="result-field"><div class="rf-label">Brand</div><div class="rf-value">Clarins</div></div>
+              <div class="result-field"><div class="rf-label">Volume</div><div class="rf-value">50 ml</div></div>
+              <div class="result-field"><div class="rf-label">Texture</div><div class="rf-value">Light emulsion</div></div>
+              <div class="result-field"><div class="rf-label">Condition</div><div class="rf-value">New</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PHP SECTION -->
+<div class="php-section">
+  <div class="section-label">PHP Implementation</div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab(this,'tv')">BeautyVisionService</div>
+    <div class="tab" onclick="switchTab(this,'te')">BeautyEnrichmentService</div>
+    <div class="tab" onclick="switchTab(this,'tc')">BeautyChatService</div>
+    <div class="tab" onclick="switchTab(this,'tp')">System Prompt</div>
+  </div>
+
+  <!-- VISION -->
+  <div class="tab-content active" id="tv"><pre><span class="cmt">/**
+ * BeautyVisionService
+ * Extracts structured product data from photos using a vision model.
+ *
+ * Prompt engineering techniques:
+ * — Constraints BEFORE permissions
+ * — Uncertainty anchoring
+ * — 5-block prompt structure
+ */</span>
+<span class="kw">final readonly class</span> <span class="cls">BeautyVisionService</span>
+{
+    <span class="kw">private const string</span> <span class="var">VISION_PROMPT</span> = <span class="str">&lt;&lt;&lt;PROMPT
+    [ROLE]
+    You are a beauty product data extractor for an e-commerce platform.
+    Think step by step in English. Output ONLY valid JSON.
+
+    [CONSTRAINTS]
+    FORBIDDEN — violating any rule makes the response invalid:
+    - Invent data not clearly visible in the image
+    - Guess skin type if not printed on label
+    - Infer country of origin from brand name — only read "Made in ..."
+    - Fill ingredient list from memory — read from photo only
+
+    [BEHAVIOR]
+    - Read ALL text visible in photos carefully
+    - If a field value is not clearly visible → return null for that field
+    - Numeric values must include units (ml, %, SPF number)
+
+    [FIELDS]
+    brandName, productLine, volumeMl, spfFactor,
+    keyIngredients (array), skinType, countryOfOrigin,
+    ean, conditionGrade ("New" or "Good")
+
+    [FORMAT]
+    Return ONLY JSON object. No markdown. No explanation.
+    PROMPT</span>;
+
+    <span class="kw">public function</span> <span class="fn">__construct</span>(
+        <span class="kw">private</span> <span class="cls">HttpClientInterface</span> <span class="var">$httpClient</span>,
+        <span class="kw">private</span> <span class="cls">LoggerInterface</span>    <span class="var">$logger</span>,
+        <span class="kw">private string</span>              <span class="var">$visionModel</span>,
+    ) {}
+
+    <span class="cmt">/** @param string[] $imagePaths Local paths to product photos */</span>
+    <span class="kw">public function</span> <span class="fn">extractFromPhotos</span>(<span class="kw">array</span> <span class="var">$imagePaths</span>): <span class="kw">array</span>
+    {
+        <span class="var">$images</span> = <span class="fn">array_map</span>(
+            <span class="kw">fn</span>(<span class="var">$path</span>) <span class="arr">=></span> [
+                <span class="str">'type'</span>      <span class="arr">=></span> <span class="str">'image_url'</span>,
+                <span class="str">'image_url'</span> <span class="arr">=></span> [<span class="str">'url'</span> <span class="arr">=></span> <span class="str">'data:image/jpeg;base64,'</span>
+                    . <span class="fn">base64_encode</span>(<span class="fn">file_get_contents</span>(<span class="var">$path</span>))],
+            ],
+            <span class="var">$imagePaths</span>
+        );
+
+        <span class="var">$messages</span> = [[
+            <span class="str">'role'</span>    <span class="arr">=></span> <span class="str">'user'</span>,
+            <span class="str">'content'</span> <span class="arr">=></span> [
+                ...<span class="var">$images</span>,
+                [<span class="str">'type'</span> <span class="arr">=></span> <span class="str">'text'</span>, <span class="str">'text'</span> <span class="arr">=></span> <span class="kw">self</span>::<span class="var">VISION_PROMPT</span>],
+            ],
+        ]];
+
+        <span class="kw">try</span> {
+            <span class="var">$response</span> = <span class="kw">$this</span><span class="arr">-></span><span class="var">httpClient</span><span class="arr">-></span><span class="fn">request</span>(<span class="str">'POST'</span>, <span class="str">'/api/chat'</span>, [
+                <span class="str">'json'</span>    <span class="arr">=></span> [
+                    <span class="str">'model'</span>    <span class="arr">=></span> <span class="kw">$this</span><span class="arr">-></span><span class="var">visionModel</span>,
+                    <span class="str">'messages'</span> <span class="arr">=></span> <span class="var">$messages</span>,
+                    <span class="str">'options'</span>  <span class="arr">=></span> [
+                        <span class="str">'temperature'</span> <span class="arr">=></span> <span class="num">0.1</span>,  <span class="cmt">// low — factual extraction</span>
+                        <span class="str">'num_predict'</span> <span class="arr">=></span> <span class="num">800</span>,
+                    ],
+                ],
+                <span class="str">'timeout'</span> <span class="arr">=></span> <span class="num">90</span>,
+            ]);
+
+            <span class="var">$raw</span> = <span class="var">$response</span><span class="arr">-></span><span class="fn">toArray</span>()[<span class="str">'message'</span>][<span class="str">'content'</span>] ?? <span class="str">''</span>;
+            <span class="kw">return</span> <span class="kw">$this</span><span class="arr">-></span><span class="fn">parseJson</span>(<span class="var">$raw</span>);
+
+        } <span class="kw">catch</span> (<span class="cls">\Throwable</span> <span class="var">$e</span>) {
+            <span class="kw">$this</span><span class="arr">-></span><span class="var">logger</span><span class="arr">-></span><span class="fn">error</span>(<span class="str">'Vision extraction failed: {err}'</span>, [
+                <span class="str">'err'</span> <span class="arr">=></span> <span class="var">$e</span><span class="arr">-></span><span class="fn">getMessage</span>(),
+            ]);
+            <span class="kw">return</span> [];
+        }
+    }
+
+    <span class="kw">private function</span> <span class="fn">parseJson</span>(<span class="kw">string</span> <span class="var">$raw</span>): <span class="kw">array</span>
+    {
+        <span class="var">$clean</span> = <span class="fn">preg_replace</span>(<span class="str">'/```(?:json)?\s*|\s*```/'</span>, <span class="str">''</span>, <span class="var">$raw</span>);
+        <span class="kw">if</span> (<span class="fn">preg_match</span>(<span class="str">'/\{.*\}/s'</span>, <span class="fn">trim</span>(<span class="var">$clean</span>), <span class="var">$m</span>)) {
+            <span class="var">$data</span> = <span class="fn">json_decode</span>(<span class="var">$m</span>[<span class="num">0</span>], <span class="kw">true</span>);
+            <span class="kw">return</span> <span class="fn">is_array</span>(<span class="var">$data</span>) ? <span class="var">$data</span> : [];
+        }
+        <span class="kw">return</span> [];
+    }
+}</pre></div>
+
+  <!-- ENRICHMENT -->
+  <div class="tab-content" id="te"><pre><span class="cmt">/**
+ * BeautyEnrichmentService
+ * Generates GEO-optimized description based on E-GEO research patterns.
+ *
+ * Best performing strategies applied:
+ * — Competitive  +1.61 avg rank improvement
+ * — FAQ intent   +1.20
+ * — Factuality preserved in 12/15 optimized prompts
+ *
+ * Generates ONLY: description, texture, conditionGrade
+ * Never generates: certifications, compatibleSkinTypes, countryOfOrigin
+ */</span>
+<span class="kw">final readonly class</span> <span class="cls">BeautyEnrichmentService</span>
+{
+    <span class="kw">public function</span> <span class="fn">__construct</span>(
+        <span class="kw">private</span> <span class="cls">AiModelClientInterface</span> <span class="var">$aiClient</span>,
+        <span class="kw">private</span> <span class="cls">LoggerInterface</span>        <span class="var">$logger</span>,
+    ) {}
+
+    <span class="kw">public function</span> <span class="fn">enrich</span>(<span class="kw">array</span> <span class="var">$data</span>): <span class="kw">array</span>
+    {
+        <span class="var">$empty</span> = <span class="kw">$this</span><span class="arr">-></span><span class="fn">detectEmptyFields</span>(<span class="var">$data</span>);
+
+        <span class="kw">if</span> (<span class="fn">empty</span>(<span class="var">$empty</span>) || !<span class="kw">$this</span><span class="arr">-></span><span class="var">aiClient</span><span class="arr">-></span><span class="fn">isAvailable</span>()) {
+            <span class="kw">return</span> [];
+        }
+
+        <span class="kw">try</span> {
+            <span class="var">$prompt</span> = <span class="kw">$this</span><span class="arr">-></span><span class="fn">buildGeoPrompt</span>(<span class="var">$data</span>, <span class="var">$empty</span>);
+            <span class="var">$raw</span>    = <span class="kw">$this</span><span class="arr">-></span><span class="var">aiClient</span><span class="arr">-></span><span class="fn">generateText</span>(<span class="var">$prompt</span>, temperature: <span class="num">0.5</span>);
+            <span class="kw">return</span> <span class="kw">$this</span><span class="arr">-></span><span class="fn">filterEmpty</span>(<span class="kw">$this</span><span class="arr">-></span><span class="fn">parseJson</span>(<span class="var">$raw</span>), <span class="var">$empty</span>);
+        } <span class="kw">catch</span> (<span class="cls">\RuntimeException</span> <span class="var">$e</span>) {
+            <span class="kw">$this</span><span class="arr">-></span><span class="var">logger</span><span class="arr">-></span><span class="fn">error</span>(<span class="str">'Enrichment failed: {err}'</span>, [<span class="str">'err'</span> <span class="arr">=></span> <span class="var">$e</span><span class="arr">-></span><span class="fn">getMessage</span>()]);
+            <span class="kw">return</span> [];
+        }
+    }
+
+    <span class="kw">private function</span> <span class="fn">detectEmptyFields</span>(<span class="kw">array</span> <span class="var">$data</span>): <span class="kw">array</span>
+    {
+        <span class="cmt">// Only fields safe from hallucination</span>
+        <span class="kw">return</span> <span class="fn">array_values</span>(<span class="fn">array_filter</span>(
+            [<span class="str">'description'</span>, <span class="str">'texture'</span>, <span class="str">'conditionGrade'</span>],
+            <span class="kw">fn</span>(<span class="var">$f</span>) <span class="arr">=></span> <span class="fn">empty</span>(<span class="fn">trim</span>(<span class="var">$data</span>[<span class="var">$f</span>] ?? <span class="str">''</span>))
+        ));
+    }
+
+    <span class="kw">private function</span> <span class="fn">buildGeoPrompt</span>(<span class="kw">array</span> <span class="var">$data</span>, <span class="kw">array</span> <span class="var">$fields</span>): <span class="kw">string</span>
+    {
+        <span class="cmt">// Build context from all available extracted fields</span>
+        <span class="var">$ingredients</span> = <span class="fn">implode</span>(<span class="str">', '</span>, <span class="var">$data</span>[<span class="str">'keyIngredients'</span>] ?? []);
+        <span class="var">$ctx</span> = <span class="fn">implode</span>(<span class="str">"\n"</span>, <span class="fn">array_filter</span>([
+            !<span class="fn">empty</span>(<span class="var">$data</span>[<span class="str">'brandName'</span>])     ? <span class="str">"Brand: {$data['brandName']}"</span>           : <span class="kw">null</span>,
+            !<span class="fn">empty</span>(<span class="var">$data</span>[<span class="str">'productLine'</span>])   ? <span class="str">"Product: {$data['productLine']}"</span>         : <span class="kw">null</span>,
+            !<span class="fn">empty</span>(<span class="var">$data</span>[<span class="str">'volumeMl'</span>])      ? <span class="str">"Volume: {$data['volumeMl']} ml"</span>          : <span class="kw">null</span>,
+            !<span class="fn">empty</span>(<span class="var">$data</span>[<span class="str">'spfFactor'</span>])     ? <span class="str">"SPF: {$data['spfFactor']}"</span>               : <span class="kw">null</span>,
+            !<span class="fn">empty</span>(<span class="var">$data</span>[<span class="str">'skinType'</span>])      ? <span class="str">"Skin type: {$data['skinType']}"</span>          : <span class="kw">null</span>,
+            !<span class="fn">empty</span>(<span class="var">$ingredients</span>)           ? <span class="str">"Key ingredients: {$ingredients}"</span>         : <span class="kw">null</span>,
+            !<span class="fn">empty</span>(<span class="var">$data</span>[<span class="str">'countryOfOrigin'</span>])? <span class="str">"Origin: {$data['countryOfOrigin']}"</span>      : <span class="kw">null</span>,
+            !<span class="fn">empty</span>(<span class="var">$data</span>[<span class="str">'ean'</span>])       ? <span class="str">"EAN: {$data['ean']}"</span>                 : <span class="kw">null</span>,
+        ]));
+
+        <span class="cmt">// GEO field definitions — E-GEO Competitive + FAQ pattern</span>
+        <span class="var">$defs</span> = [
+            <span class="str">'description'</span>   <span class="arr">=></span> <span class="str">'"description": "GEO text for AI search engines (ChatGPT, Perplexity, Google SGE).
+              Structure: WHAT+FOR WHOM → active ingredients → texture → SPF → skin benefit → EAN.
+              Include ALL numeric parameters. Address buyer intent: what skin problem does it solve?
+              Competitive differentiation: why this product over alternatives?
+              5–10 sentences. No adjectives: reliable/perfect/best/luxurious are forbidden."'</span>,
+            <span class="str">'texture'</span>        <span class="arr">=></span> <span class="str">'"texture": "cream / gel-cream / serum / lightweight emulsion / rich balm"'</span>,
+            <span class="str">'conditionGrade'</span> <span class="arr">=></span> <span class="str">'"conditionGrade": "New or Good only"'</span>,
+        ];
+
+        <span class="var">$jsonFields</span> = <span class="fn">implode</span>(<span class="str">",\n    "</span>,
+            <span class="fn">array_map</span>(<span class="kw">fn</span>(<span class="var">$f</span>) <span class="arr">=></span> <span class="var">$defs</span>[<span class="var">$f</span>] ?? <span class="str">''</span>, <span class="var">$fields</span>)
+        );
+
+        <span class="kw">return</span> <span class="str">&lt;&lt;&lt;PROMPT
+        You are a GEO copywriter for a beauty e-commerce store.
+        Think in English. Respond in English only.
+
+        FORBIDDEN:
+        - Invent ingredients or clinical claims not present in the data
+        - Marketing words: "luxurious", "perfect", "best", "amazing", "holy grail"
+        - Generic phrases: "suitable for all skin types" unless stated in data
+        - Mention price, discounts, or stock availability
+
+        Product data:
+        {$ctx}
+
+        Fill ONLY these fields. Respond with strict JSON, no markdown:
+        {
+            {$jsonFields}
+        }
+        PROMPT</span>;
+    }
+
+    <span class="kw">private function</span> <span class="fn">filterEmpty</span>(<span class="kw">array</span> <span class="var">$ai</span>, <span class="kw">array</span> <span class="var">$empty</span>): <span class="kw">array</span>
+    {
+        <span class="kw">return</span> <span class="fn">array_filter</span>(
+            <span class="fn">array_intersect_key</span>(<span class="var">$ai</span>, <span class="fn">array_flip</span>(<span class="var">$empty</span>)),
+            <span class="kw">fn</span>(<span class="var">$v</span>) <span class="arr">=></span> !<span class="fn">empty</span>(<span class="var">$v</span>)
+        );
+    }
+
+    <span class="kw">private function</span> <span class="fn">parseJson</span>(<span class="kw">string</span> <span class="var">$raw</span>): <span class="kw">array</span>
+    {
+        <span class="var">$clean</span> = <span class="fn">preg_replace</span>(<span class="str">'/```(?:json)?\s*|\s*```/'</span>, <span class="str">''</span>, <span class="var">$raw</span>);
+        <span class="kw">if</span> (<span class="fn">preg_match</span>(<span class="str">'/\{.*\}/s'</span>, <span class="fn">trim</span>(<span class="var">$clean</span>), <span class="var">$m</span>)) {
+            <span class="var">$data</span> = <span class="fn">json_decode</span>(<span class="var">$m</span>[<span class="num">0</span>], <span class="kw">true</span>);
+            <span class="kw">return</span> <span class="fn">is_array</span>(<span class="var">$data</span>) ? <span class="var">$data</span> : [];
+        }
+        <span class="kw">return</span> [];
+    }
+}</pre></div>
+
+  <!-- CHAT -->
+  <div class="tab-content" id="tc"><pre><span class="cmt">/**
+ * BeautyChatService
+ * Streaming chat for interactive product card refinement.
+ *
+ * Prompt engineering techniques:
+ * — Critical first tokens — output starts with [field:name]
+ * — Disambiguation — one clarifying question if ambiguous
+ * — 5-block structure
+ */</span>
+<span class="kw">final readonly class</span> <span class="cls">BeautyChatService</span>
+{
+    <span class="kw">private const string</span> <span class="var">SYSTEM_PROMPT</span> = <span class="str">&lt;&lt;&lt;PROMPT
+    [ROLE]
+    Technical copywriter for a beauty e-commerce platform.
+    Help the seller fill in the product card for a face cream.
+    Think in English internally. Output in English only.
+
+    [CONSTRAINTS]
+    FORBIDDEN:
+    - Invent ingredients, clinical studies, or certifications not provided
+    - Use words: "luxurious", "perfect", "best", "amazing", "holy grail"
+    - Suggest price, discount, or stock quantity
+    - Fill certifications, compatibleSkinTypes — those come from catalog
+
+    [BEHAVIOR]
+    - On greeting: briefly describe capabilities. Do NOT generate data.
+    - Generate fields ONLY when seller explicitly requests it
+    - If seller request is ambiguous → ask ONE clarifying question (CPR)
+    - Keep responses concise and factual
+
+    [FIELD_RULES]
+    description:
+    - GEO structure: WHAT+FOR WHOM → ingredients → texture → SPF → benefit → EAN
+    - All numeric parameters included (ml, %, SPF number)
+    - 5–10 sentences. Concrete. No marketing language.
+    texture:
+    - cream / gel-cream / serum / lightweight emulsion / rich balm
+    conditionGrade:
+    - "New" or "Good" only — no other values
+
+    [FORMAT]
+    Field output: [field:name]value[/field]
+    PROMPT</span>;
+
+    <span class="kw">public function</span> <span class="fn">__construct</span>(
+        <span class="kw">private</span> <span class="cls">HttpClientInterface</span> <span class="var">$httpClient</span>,
+        <span class="kw">private</span> <span class="cls">LoggerInterface</span>    <span class="var">$logger</span>,
+        <span class="kw">private string</span>              <span class="var">$textModel</span>,
+    ) {}
+
+    <span class="kw">public function</span> <span class="fn">chat</span>(<span class="cls">BeautyChatRequest</span> <span class="var">$request</span>): <span class="cls">StreamedResponse</span>
+    {
+        <span class="var">$system</span>   = <span class="kw">$this</span><span class="arr">-></span><span class="fn">buildSystemWithContext</span>(<span class="var">$request</span><span class="arr">-></span><span class="var">cardContext</span>);
+        <span class="var">$messages</span> = <span class="kw">$this</span><span class="arr">-></span><span class="fn">buildMessages</span>(<span class="var">$system</span>, <span class="var">$request</span><span class="arr">-></span><span class="var">messages</span>);
+
+        <span class="kw">return new</span> <span class="cls">StreamedResponse</span>(
+            <span class="kw">fn</span>() <span class="arr">=></span> <span class="kw">$this</span><span class="arr">-></span><span class="fn">stream</span>(<span class="var">$messages</span>),
+            <span class="num">200</span>,
+            [
+                <span class="str">'Content-Type'</span>      <span class="arr">=></span> <span class="str">'text/event-stream'</span>,
+                <span class="str">'Cache-Control'</span>     <span class="arr">=></span> <span class="str">'no-cache'</span>,
+                <span class="str">'X-Accel-Buffering'</span> <span class="arr">=></span> <span class="str">'no'</span>,
+            ]
+        );
+    }
+
+    <span class="kw">private function</span> <span class="fn">buildSystemWithContext</span>(?<span class="kw">array</span> <span class="var">$ctx</span>): <span class="kw">string</span>
+    {
+        <span class="kw">if</span> (<span class="fn">empty</span>(<span class="var">$ctx</span>)) {
+            <span class="kw">return</span> <span class="kw">self</span>::<span class="var">SYSTEM_PROMPT</span>;
+        }
+
+        <span class="var">$map</span> = [
+            <span class="str">'brandName'</span>       <span class="arr">=></span> <span class="str">'Brand'</span>,
+            <span class="str">'productLine'</span>     <span class="arr">=></span> <span class="str">'Product'</span>,
+            <span class="str">'volumeMl'</span>        <span class="arr">=></span> <span class="str">'Volume (ml)'</span>,
+            <span class="str">'spfFactor'</span>       <span class="arr">=></span> <span class="str">'SPF'</span>,
+            <span class="str">'keyIngredients'</span>  <span class="arr">=></span> <span class="str">'Key ingredients'</span>,
+            <span class="str">'skinType'</span>        <span class="arr">=></span> <span class="str">'Skin type'</span>,
+            <span class="str">'texture'</span>         <span class="arr">=></span> <span class="str">'Texture'</span>,
+            <span class="str">'countryOfOrigin'</span> <span class="arr">=></span> <span class="str">'Country of origin'</span>,
+            <span class="str">'ean'</span>         <span class="arr">=></span> <span class="str">'EAN / Barcode'</span>,
+        ];
+
+        <span class="var">$lines</span> = [];
+        <span class="kw">foreach</span> (<span class="var">$map</span> <span class="kw">as</span> <span class="var">$key</span> <span class="arr">=></span> <span class="var">$label</span>) {
+            <span class="var">$val</span> = <span class="var">$ctx</span>[<span class="var">$key</span>] ?? <span class="kw">null</span>;
+            <span class="kw">if</span> (!<span class="fn">empty</span>(<span class="var">$val</span>)) {
+                <span class="var">$lines</span>[] = <span class="str">"{$label}: "</span>
+                    . (<span class="fn">is_array</span>(<span class="var">$val</span>) ? <span class="fn">implode</span>(<span class="str">', '</span>, <span class="var">$val</span>) : <span class="var">$val</span>);
+            }
+        }
+
+        <span class="kw">return</span> <span class="kw">self</span>::<span class="var">SYSTEM_PROMPT</span>
+            . <span class="str">"\n\n[CARD_DATA]\n"</span>
+            . <span class="fn">implode</span>(<span class="str">"\n"</span>, <span class="var">$lines</span>);
+    }
+
+    <span class="kw">private function</span> <span class="fn">stream</span>(<span class="kw">array</span> <span class="var">$messages</span>): <span class="kw">void</span>
+    {
+        <span class="kw">try</span> {
+            <span class="var">$response</span> = <span class="kw">$this</span><span class="arr">-></span><span class="var">httpClient</span><span class="arr">-></span><span class="fn">request</span>(<span class="str">'POST'</span>, <span class="str">'/api/chat'</span>, [
+                <span class="str">'json'</span> <span class="arr">=></span> [
+                    <span class="str">'model'</span>    <span class="arr">=></span> <span class="kw">$this</span><span class="arr">-></span><span class="var">textModel</span>,
+                    <span class="str">'messages'</span> <span class="arr">=></span> <span class="var">$messages</span>,
+                    <span class="str">'stream'</span>   <span class="arr">=></span> <span class="kw">true</span>,
+                    <span class="str">'options'</span>  <span class="arr">=></span> [
+                        <span class="str">'temperature'</span>    <span class="arr">=></span> <span class="num">0.5</span>,
+                        <span class="str">'top_p'</span>          <span class="arr">=></span> <span class="num">0.95</span>,
+                        <span class="str">'repeat_penalty'</span> <span class="arr">=></span> <span class="num">1.1</span>,
+                        <span class="str">'num_predict'</span>    <span class="arr">=></span> <span class="num">1500</span>,
+                    ],
+                ],
+                <span class="str">'timeout'</span> <span class="arr">=></span> <span class="num">120</span>,
+                <span class="str">'buffer'</span>  <span class="arr">=></span> <span class="kw">false</span>,
+            ]);
+
+            <span class="kw">foreach</span> (<span class="kw">$this</span><span class="arr">-></span><span class="var">httpClient</span><span class="arr">-></span><span class="fn">stream</span>(<span class="var">$response</span>) <span class="kw">as</span> <span class="var">$chunk</span>) {
+                <span class="kw">foreach</span> (<span class="fn">explode</span>(<span class="str">"\n"</span>, <span class="fn">trim</span>(<span class="var">$chunk</span><span class="arr">-></span><span class="fn">getContent</span>())) <span class="kw">as</span> <span class="var">$line</span>) {
+                    <span class="var">$d</span> = <span class="fn">json_decode</span>(<span class="var">$line</span>, <span class="kw">true</span>);
+                    <span class="kw">if</span> (!<span class="fn">is_array</span>(<span class="var">$d</span>)) <span class="kw">continue</span>;
+
+                    <span class="var">$token</span> = <span class="var">$d</span>[<span class="str">'message'</span>][<span class="str">'content'</span>] ?? <span class="str">''</span>;
+                    <span class="kw">if</span> (<span class="var">$token</span> !== <span class="str">''</span>) {
+                        <span class="kw">echo</span> <span class="str">"data: "</span> . <span class="fn">json_encode</span>([<span class="str">'token'</span> <span class="arr">=></span> <span class="var">$token</span>]) . <span class="str">"\n\n"</span>;
+                        <span class="fn">ob_flush</span>(); <span class="fn">flush</span>();
+                    }
+                    <span class="kw">if</span> (<span class="var">$d</span>[<span class="str">'done'</span>] ?? <span class="kw">false</span>) {
+                        <span class="kw">echo</span> <span class="str">"data: [DONE]\n\n"</span>;
+                        <span class="fn">ob_flush</span>(); <span class="fn">flush</span>();
+                        <span class="kw">return</span>;
+                    }
+                }
+            }
+        } <span class="kw">catch</span> (<span class="cls">\Throwable</span> <span class="var">$e</span>) {
+            <span class="kw">$this</span><span class="arr">-></span><span class="var">logger</span><span class="arr">-></span><span class="fn">error</span>(<span class="str">'Chat stream error: {err}'</span>, [<span class="str">'err'</span> <span class="arr">=></span> <span class="var">$e</span><span class="arr">-></span><span class="fn">getMessage</span>()]);
+            <span class="kw">echo</span> <span class="str">"data: "</span> . <span class="fn">json_encode</span>([<span class="str">'error'</span> <span class="arr">=></span> <span class="str">'AI service unavailable'</span>]) . <span class="str">"\n\n"</span>;
+            <span class="fn">ob_flush</span>(); <span class="fn">flush</span>();
+        }
+    }
+
+    <span class="kw">private function</span> <span class="fn">buildMessages</span>(<span class="kw">string</span> <span class="var">$sys</span>, <span class="kw">array</span> <span class="var">$msgs</span>): <span class="kw">array</span>
+    {
+        <span class="var">$out</span> = [[<span class="str">'role'</span> <span class="arr">=></span> <span class="str">'system'</span>, <span class="str">'content'</span> <span class="arr">=></span> <span class="var">$sys</span>]];
+        <span class="kw">foreach</span> (<span class="var">$msgs</span> <span class="kw">as</span> <span class="var">$m</span>) {
+            <span class="kw">if</span> (!<span class="fn">empty</span>(<span class="var">$m</span>[<span class="str">'content'</span>])) {
+                <span class="var">$out</span>[] = [
+                    <span class="str">'role'</span>    <span class="arr">=></span> <span class="var">$m</span>[<span class="str">'role'</span>] === <span class="str">'assistant'</span> ? <span class="str">'assistant'</span> : <span class="str">'user'</span>,
+                    <span class="str">'content'</span> <span class="arr">=></span> <span class="var">$m</span>[<span class="str">'content'</span>],
+                ];
+            }
+        }
+        <span class="kw">return</span> <span class="var">$out</span>;
+    }
+}</pre></div>
+
+  <!-- PROMPT -->
+  <div class="tab-content" id="tp">
+    <div style="background:var(--code-bg);border:1px solid #2A1A22;border-top:none;border-radius:0 0 4px 4px;padding:28px;">
+      <div class="prompt-block">
+        <p>
+          <span class="block-label bl-role">[ROLE]</span>
+          Technical copywriter for a beauty e-commerce platform.<br>
+          Help the seller fill in the product card for a face cream.<br>
+          Think in English internally. Output in English only.
+
+          <span class="block-label bl-const">[CONSTRAINTS]</span>
+          FORBIDDEN — violating any rule makes the response invalid:<br>
+          — Invent ingredients or clinical claims not provided<br>
+          — Use words: "luxurious", "perfect", "best", "amazing"<br>
+          — Suggest price, discounts, or stock quantity<br>
+          — Fill certifications, compatibleSkinTypes — from catalog only
+
+          <span class="block-label bl-behav">[BEHAVIOR]</span>
+          — On greeting: briefly describe capabilities. Do NOT generate data.<br>
+          — Generate fields ONLY on explicit seller request<br>
+          — If request is ambiguous → ask ONE clarifying question (CPR)<br>
+          — Keep responses concise and factual
+
+          <span class="block-label bl-field">[FIELD_RULES]</span>
+          description: GEO — WHAT+FOR WHOM → ingredients → texture → SPF → benefit → EAN<br>
+          All numeric values. 5–10 sentences. No marketing language.<br>
+          texture: cream / gel-cream / serum / lightweight emulsion / rich balm<br>
+          conditionGrade: "New" or "Good" only
+
+          <span class="block-label bl-fmt">[FORMAT]</span>
+          Field output: [field:name]value[/field]
+        </p>
+      </div>
+      </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  GEO Pipeline · Beauty E-Commerce · 2025<br>
+  <span style="color:var(--muted);margin-top:6px;display:block;">PHP 8.4 · Symfony · Ollama · Qwen2.5-VL:7b</span>
+</div>
+
+<script>
+  function toggleStep(el, id) {
+    const panel = document.getElementById(id);
+    const isOpen = panel.classList.contains('open');
+    document.querySelectorAll('.detail-panel').forEach(p => p.classList.remove('open'));
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    if (!isOpen) { panel.classList.add('open'); el.classList.add('active'); }
+  }
+  function switchTab(el, id) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById(id).classList.add('active');
+  }
+</script>
+</body>
+</html>
